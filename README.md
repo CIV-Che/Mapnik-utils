@@ -5,7 +5,7 @@ Genereation tiles of map (OSM) utilities based on Python Mapnik library.
 
 ===== English content in down of file =================================
 
-В репозитории Python скрипт для генерации тайлов карты (ОСМ) с помощью библиотеки
+В этом репозитории -  Python-скрипт для генерации тайлов карты (ОСМ) с помощью библиотеки
 Mapnik (текущая версия 2.0.1). Скрипт код основан на скрипте из стандартного
 пакета Маpnik-utils generate_tiles_multiprocess.py
 (взят общий механизм распараллеливания и слегка измененный класс проекции Google) и
@@ -36,7 +36,7 @@ Mapnik (текущая версия 2.0.1). Скрипт код основан �
 
 ====== English content ================
 
-In the repository Python script to generate. tile map (OSM) using the library
+In this repository Python-script to generate. tile map (OSM) using the library
 Mapnik (current version 2.0.1). The script code is based on a script from a
 standard Package Mapnik-utils generate_tiles_multiprocess.py (taken general
 mechanism of parallelization and slightly different class of projections
