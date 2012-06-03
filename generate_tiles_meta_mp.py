@@ -2,18 +2,18 @@
 
 # -*- coding: utf-8 -*-
 
-#
-# This script for generate OSM tiles inside bounding box and from list-file (for cities generation)
-# you make define path to tile dir, zooms you needed and any others params.
-# 
-# This script base on standart Mapnik-utils - generate_tiles_multiprocess.py
-# and TileLite psha fork (metatile mechanism).
-#
-# This script oriented to improve performance and no have statistics analizer and other pancakes
-#
+""" This script for generate OSM tiles inside bounding box and from list-file
+(for cities generation) you make define path to tile dir, zooms you needed and
+any others params.
+
+This script base on standart Mapnik-utils - generate_tiles_multiprocess.py and
+TileLite psha fork (metatile mechanism).
+
+This script oriented to improve performance and no have statistics analizer
+and other pancakes """
+
 __author__ = 'Cheltsov Ivan (civ@ploha.ru)'
-__copyright__ = 'Copyright 2012, Cheltsov Ivan'
-__version__ = '0.1.0'
+__copyright__ = 'Copyright 2012, Cheltsov Ivan' __version__ = '0.1.0'
 __license__ = 'LGPL'
 
 from math import pi,cos,sin,log,exp,atan
