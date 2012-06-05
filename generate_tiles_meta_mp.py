@@ -168,10 +168,10 @@ class RenderThread:
                     # View one tile from metatile and save here
                     im.view(dx*TILE_SIZE, dy*TILE_SIZE, TILE_SIZE, TILE_SIZE).save(tile_uri, 'png256')
                 elif not ONLY_NEW:
-                    os.remove(tile_uri) # Comment this string for only new mode
+                    os.remove(tile_uri) # Rewrite mode
                     # View one tile from metatile and save here
-                    im.view(dx*TILE_SIZE, dy*TILE_SIZE, TILE_SIZE, TILE_SIZE).save(tile_uri, 'png256') # Comment this string for only new mode
-                else: pass     # For only new tiles in cache generation
+                    im.view(dx*TILE_SIZE, dy*TILE_SIZE, TILE_SIZE, TILE_SIZE).save(tile_uri, 'png256')
+                else: continue     # For only new tiles in cache generation
 
                 # Check for empty tile was generated (and make hardlink on it)
                 if os.stat(tile_uri)[6] == 103:
