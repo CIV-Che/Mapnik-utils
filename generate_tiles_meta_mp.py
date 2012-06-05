@@ -2,18 +2,18 @@
 
 # -*- coding: utf-8 -*-
 
-""" This script for generate OSM tiles inside bounding box and from list-file
-(for cities generation) you make define path to tile dir, zooms you needed and
-any others params.
+"""
+This script for generate OSM tiles inside bounding box and from list-file (for cities generation)
+you make define path to tile dir, zooms you needed and any others params.
 
-This script base on standart Mapnik-utils - generate_tiles_multiprocess.py and
-TileLite psha fork (metatile mechanism).
+This script base on standart Mapnik-utils - generate_tiles_multiprocess.py
+and TileLite psha fork (metatile mechanism).
 
-This script oriented to improve performance and no have statistics analizer
-and other pancakes """
-
+This script oriented to improve performance and no have statistics analizer and other pancakes
+"""
 __author__ = 'Cheltsov Ivan (civ@ploha.ru)'
-__copyright__ = 'Copyright 2012, Cheltsov Ivan' __version__ = '0.1.0'
+__copyright__ = 'Copyright 2012, Cheltsov Ivan'
+__version__ = '0.1.0'
 __license__ = 'LGPL'
 
 from math import pi,cos,sin,log,exp,atan
@@ -36,7 +36,7 @@ except:
 #
 
 # Default number of rendering threads to spawn, should be roughly equal to number of CPU cores available
-NUM_THREADS = 12
+NUM_THREADS = 48
 
 MIN_ZOOM = 15
 MAX_ZOOM = 17
@@ -53,6 +53,8 @@ BUF_SIZE = 1024 # Number pixels on side for attached around the tile buffer imag
 ## Or, uncomment any two lines with GEN_NAME and BBOX variables (for define variables in script)
 GEN_NAME = "Russsia, Cities bboxs"
 BBOX_FILE = '/osm/data/city.ru.bbox'
+
+ONLY_NEW = 'false' # If ONLY_NEW = 'true' then will not generate tile exist in tile cache
 
 
 
@@ -167,11 +169,11 @@ class RenderThread:
                 if not os.path.isfile(tile_uri):
                     # View one tile from metatile and save here
                     im.view(dx*TILE_SIZE, dy*TILE_SIZE, TILE_SIZE, TILE_SIZE).save(tile_uri, 'png256')
-                else:
-                    pass     # For only new tiles in cache generation (need comment next 2 program string) (for rewrite mode coment this string)
-#                    os.remove(tile_uri) # Comment this string for only new mode
+                elif ONLY_NEW <> 'true':
+                    os.remove(tile_uri) # Comment this string for only new mode
                     # View one tile from metatile and save here
-#                    im.view(dx*TILE_SIZE, dy*TILE_SIZE, TILE_SIZE, TILE_SIZE).save(tile_uri, 'png256') # Comment this string for only new mode
+                    im.view(dx*TILE_SIZE, dy*TILE_SIZE, TILE_SIZE, TILE_SIZE).save(tile_uri, 'png256') # Comment this string for only new mode
+                else: pass     # For only new tiles in cache generation
 
                 # Check for empty tile was generated (and make hardlink on it)
                 if os.stat(tile_uri)[6] == 103:
@@ -200,7 +202,7 @@ class RenderThread:
         self.tileproj = GoogleProjection(self.maxZoom)
                 
         while True:
-            #Fetch a tile from the queue and render it
+            # Fetch a tile from the queue and render it
             r = self.q.get()
             if (r == None):
                 self.q.task_done()
@@ -212,10 +214,10 @@ class RenderThread:
 
 
 
-def render_tiles(bbox, mapfile, tile_dir, minZoom=1, maxZoom=18, name="unknown", num_threads=NUM_THREADS):
+def render_tiles(bb_lst, mapfile, tile_dir, minZoom=1, maxZoom=18, name="unknown", num_threads=NUM_THREADS):
 
     # Launch rendering processes
-    queue = multiprocessing.JoinableQueue(96)
+    queue = multiprocessing.JoinableQueue(128)
     blocker = multiprocessing.Lock()
     renderers = {}
     for i in xrange(num_threads):
@@ -229,38 +231,53 @@ def render_tiles(bbox, mapfile, tile_dir, minZoom=1, maxZoom=18, name="unknown",
 
     gprj = GoogleProjection(maxZoom)
 
-    ll0 = (bbox[0],bbox[3])
-    ll1 = (bbox[2],bbox[1])
+    # Making progressbar
+    import progressbar
+    widgets = ['Now generate progress: ', progressbar.SimpleProgress(),
+               progressbar.Bar(marker=">",left='[',right=']'),
+               ' ', progressbar.ETA(), ' ', progressbar.FileTransferSpeed()]
+    bar = progressbar.ProgressBar(widgets= widgets, maxval=len(lst)).start()
+    counter = 0
 
-    # Calculate optimal size of metatile
-    px0 = gprj.fromLLtoPixel(ll0,MAX_ZOOM)
-    px1 = gprj.fromLLtoPixel(ll1,MAX_ZOOM)
-    px = (abs(px0[0]-px1[0])//3, abs(px0[1]-px1[1])//3)
-    ms = int(min(META_SIZE, px[0], px[1])
-    
-    # Calculate size of metatile for all zoom levels
-    meta_size = [ms//2**(MAX_ZOOM-z) if ms//2**(MAX_ZOOM-z) > 1 else 1 for z in xrange(0, MAX_ZOOM+1)]
+    # Iteration by bbox list
+    for bbox in bb_lst:
+        bar.update(counter)
+        counter += 1
 
-    # Pool to queue task for any zooms metatiles
-    for z in xrange(minZoom, maxZoom+1):
-        px0 = gprj.fromLLtoPixel(ll0,z)
-        px1 = gprj.fromLLtoPixel(ll1,z)
+        ll0 = (bbox[0],bbox[3])
+        ll1 = (bbox[2],bbox[1])
 
-        # check if we have directories in place
-        zoom = "%s" % z
-        if not os.path.isdir(tile_dir + zoom):
-            os.mkdir(os.path.join(tile_dir, zoom))
-        for mx in xrange(int(px0[0]/TILE_SIZE), int(px1[0]/TILE_SIZE)+1, meta_size[z]):
-            # Validate x co-ordinate
-            if (mx < 0) or (mx >= 2**z):
-                continue
-            for my in xrange(int(px0[1]/TILE_SIZE),int(px1[1]/TILE_SIZE)+1, meta_size[z]):
+        # Calculate optimal size of metatile
+        px0 = gprj.fromLLtoPixel(ll0,MAX_ZOOM)
+        px1 = gprj.fromLLtoPixel(ll1,MAX_ZOOM)
+        px = (abs(px0[0]-px1[0])//3, abs(px0[1]-px1[1])//3)
+        ms = int(min(META_SIZE, px[0], px[1]))
+
+        # Calculate size of metatile for all zoom levels
+        meta_size = [(ms//2**(MAX_ZOOM-z)) if (ms//2**(MAX_ZOOM-z)) > 1 else 1 for z in xrange(0, MAX_ZOOM+1)]
+
+        # Pool to queue task for any zooms metatiles
+        for z in xrange(minZoom, maxZoom+1):
+            px0 = gprj.fromLLtoPixel(ll0,z)
+            px1 = gprj.fromLLtoPixel(ll1,z)
+
+            # check if we have directories in place
+            zoom = "%s" % z
+            if not os.path.isdir(tile_dir + zoom):
+                os.mkdir(os.path.join(tile_dir, zoom))
+            for mx in xrange(int(px0[0]/TILE_SIZE), int(px1[0]/TILE_SIZE)+1, meta_size[z]):
                 # Validate x co-ordinate
-                if (my < 0) or (my >= 2**z):
+                if (mx < 0) or (mx >= 2**z):
                     continue
-                # Submit tile to be rendered into the queue
-                t = (name, mx, my, z, meta_size[z])
-                queue.put(t)
+                for my in xrange(int(px0[1]/TILE_SIZE),int(px1[1]/TILE_SIZE)+1, meta_size[z]):
+                    # Validate x co-ordinate
+                    if (my < 0) or (my >= 2**z):
+                        continue
+                    # Submit tile to be rendered into the queue
+                    t = (name, mx, my, z, meta_size[z])
+                    queue.put(t)
+
+    bar.finish()
 
     # Signal render threads to exit by sending empty request to queue
     for i in xrange(num_threads):
@@ -296,18 +313,8 @@ if __name__ == "__main__":
         bbox_f = open(BBOX_FILE, 'r')
         lst = set(bbox_f)
         bbox_f.close()
-        import progressbar
-        widgets = ['Now generate progress: ', progressbar.SimpleProgress(),
-                   progressbar.Bar(marker=progressbar.RotatingMarker(),left='[',right=']'),
-                   ' ', progressbar.ETA(), ' ', progressbar.FileTransferSpeed()]
-        bar = progressbar.ProgressBar(widgets= widgets, maxval=len(lst)).start()
-        counter = 0
-        for bb in lst:
-            bar.update(counter)
-            counter += 1
-            render_tiles([float(coord) for coord in bb.strip().split(',')], mapfile, tile_dir,
-                             MIN_ZOOM, MAX_ZOOM, GEN_NAME, NUM_THREADS)
-        bar.finish()
+        render_tiles(set([tuple([float(coord) for coord in bb.strip().split(',')]) for bb in lst]),
+                     mapfile, tile_dir, MIN_ZOOM, MAX_ZOOM, GEN_NAME, NUM_THREADS)
     else:
         print "render_tiles(",BBOX, mapfile, tile_dir, MIN_ZOOM, MAX_ZOOM, GEN_NAME,")"
-        render_tiles(BBOX, mapfile, tile_dir, MIN_ZOOM, MAX_ZOOM, GEN_NAME, NUM_THREADS)
+        render_tiles([BBOX], mapfile, tile_dir, MIN_ZOOM, MAX_ZOOM, GEN_NAME, NUM_THREADS)
