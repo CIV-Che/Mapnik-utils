@@ -54,7 +54,7 @@ BUF_SIZE = 1024 # Number pixels on side for attached around the tile buffer imag
 GEN_NAME = "Russsia, Cities bboxs"
 BBOX_FILE = '/osm/data/city.ru.bbox'
 
-ONLY_NEW = 'false' # If ONLY_NEW = 'true' then will not generate tile exist in tile cache
+ONLY_NEW = bool(0)  # If ONLY_NEW = bool(1) then will not generate tile exist in tile cache
 
 
 
@@ -164,12 +164,10 @@ class RenderThread:
 
 		# Calculate full one current tile uri
                 tile_uri = os.path.join(dir_uri, '%s.%s' % ((y+dy), 'png'))
-
-                # If you need force regenerate all (include exists) tiles in tile dirs need change to "else"
                 if not os.path.isfile(tile_uri):
                     # View one tile from metatile and save here
                     im.view(dx*TILE_SIZE, dy*TILE_SIZE, TILE_SIZE, TILE_SIZE).save(tile_uri, 'png256')
-                elif ONLY_NEW <> 'true':
+                elif not ONLY_NEW:
                     os.remove(tile_uri) # Comment this string for only new mode
                     # View one tile from metatile and save here
                     im.view(dx*TILE_SIZE, dy*TILE_SIZE, TILE_SIZE, TILE_SIZE).save(tile_uri, 'png256') # Comment this string for only new mode
