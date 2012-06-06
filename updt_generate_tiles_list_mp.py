@@ -1,10 +1,22 @@
 #!/usr/bin/env python
 
-#
-# This script for generate OSM tiles from coordinate list (part) taked with _make_lst_for_gen_tls.py script,
-# This script run on any systep calculate cloud and get particulary list of all tiles coordinate need generated/
-# You make define number of generator thread, file with particulary list and any others params.
-#
+# -*- coding: utf-8 -*-
+
+""" 
+This script for generate OSM tiles from coordinate list (part) taked
+with _make_lst_for_gen_tls.py script, This script run on any systep
+calculate cloud and get particulary list of all tiles coordinate need
+generated/ You make define number of generator thread, file with
+particulary list and any others params. 
+"""
+
+__author__ = 'Cheltsov Ivan (civ@ploha.ru)'
+__copyright__ = 'Copyright 2012, Cheltsov Ivan'
+__version__ = '0.1.0'
+__license__ = 'LGPL'
+
+
+
 
 from math import pi,cos,sin,log,exp,atan
 from subprocess import call
@@ -23,7 +35,7 @@ MIN_ZOOM = 4
 MAX_ZOOM = 17
 
 MAP_FILE = "/osm/mapnik/osm.xml"
-TILE_DIR = "/osm/tiles/"
+TILE_DIR = "/osm/wintiles/"
 
 # Define name of list-file from _make_lst_for_gen_tls.py (tiles-coord)
 LIST_TILES = '/osm/update/part_0.list'
