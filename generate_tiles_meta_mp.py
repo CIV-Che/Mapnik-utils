@@ -11,6 +11,7 @@ and TileLite psha fork (metatile mechanism).
 
 This script oriented to improve performance and no have statistics analizer and other pancakes
 """
+
 __author__ = 'Cheltsov Ivan (civ@ploha.ru)'
 __copyright__ = 'Copyright 2012, Cheltsov Ivan'
 __version__ = '0.1.0'
@@ -123,13 +124,11 @@ class GoogleProjection:
 
 
 class RenderThread:
-#    def __init__(self, tile_dir, mapfile, q, blocker, maxZoom):
     def __init__(self, tile_dir, mapfile, q, maxZoom):
         self.tile_dir = tile_dir
         self.q = q
         self.mapfile = mapfile
         self.maxZoom = maxZoom
-#        self.blocker = blocker
 
     def render_tile(self, x, y, z, m_size):
         ## Calculate pixel positions of bottom-left & top-right
@@ -224,10 +223,8 @@ def render_tiles(bb_lst, mapfile, tile_dir, minZoom=1, maxZoom=18, name="unknown
 
     # Launch rendering processes
     queue = multiprocessing.JoinableQueue(128)
-#    blocker = multiprocessing.Lock()
     renderers = {}
     for i in xrange(num_threads):
-#        renderer = RenderThread(tile_dir, mapfile, queue, blocker, maxZoom)
         renderer = RenderThread(tile_dir, mapfile, queue, maxZoom)
         render_thread = multiprocessing.Process(target=renderer.loop)
         render_thread.start()
