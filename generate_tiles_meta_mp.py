@@ -11,7 +11,6 @@ and TileLite psha fork (metatile mechanism).
 
 This script oriented to improve performance and no have statistics analizer and other pancakes
 """
-
 __author__ = 'Cheltsov Ivan (civ@ploha.ru)'
 __copyright__ = 'Copyright 2012, Cheltsov Ivan'
 __version__ = '0.1.0'
@@ -37,11 +36,11 @@ except:
 #
 
 # Default number of rendering threads to spawn, should be roughly equal to number of CPU cores available
-NUM_THREADS = 48
+NUM_THREADS = 32
 
-MIN_ZOOM = 15
+MIN_ZOOM = 4
 MAX_ZOOM = 17
-TILE_DIR = "/osm/tiles/"
+TILE_DIR = "/osm/wintiles/"
 MAP_FILE = "/osm/mapnik/osm.xml"
 TILE_SIZE = 256 # Number pixels on side for standart tile
 
@@ -52,15 +51,15 @@ BUF_SIZE = 1024 # Number pixels on side for attached around the tile buffer imag
 
 ## Uncomment next line for read BBOXs from list-file (one bbox on line, splitter is ",").
 ## Or, uncomment any two lines with GEN_NAME and BBOX variables (for define variables in script)
-GEN_NAME = "Russsia, Cities bboxs"
-BBOX_FILE = '/osm/data/city.ru.bbox'
+#GEN_NAME = "Russsia, Cities bboxs"
+#BBOX_FILE = '/osm/data/city.ru.bbox'
 
 ONLY_NEW = bool(0)  # If ONLY_NEW = bool(1) then will not generate tile exist in tile cache
 
 
 
-#GEN_NAME = "Kaliningrad reg."
-#BBOX = (19.3, 54.3, 22.9, 55.4)
+GEN_NAME = "Kaliningrad reg."
+BBOX = (19.3, 54.3, 22.9, 55.4)
 
 #GEN_NAME = "KGD-region"
 #BBOX = (19.3, 54.3, 22.9, 55.4) # obl
@@ -240,7 +239,7 @@ def render_tiles(bb_lst, mapfile, tile_dir, minZoom=1, maxZoom=18, name="unknown
     widgets = ['Now generate progress: ', progressbar.SimpleProgress(),
                progressbar.Bar(marker=">",left='[',right=']'),
                ' ', progressbar.ETA(), ' ', progressbar.FileTransferSpeed()]
-    bar = progressbar.ProgressBar(widgets= widgets, maxval=len(lst)).start()
+    bar = progressbar.ProgressBar(widgets = widgets, maxval = len(bb_lst)).start()
     counter = 0
 
     # Iteration by bbox list
