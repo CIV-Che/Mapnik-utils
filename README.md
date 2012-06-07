@@ -8,16 +8,16 @@ Genereation tiles of map (OSM) utilities based on Python Mapnik library.
 Описание
 --------
 
-В этом репозитории - Python-скрипт (generate_tiles_meta_mp.py) для генерации тайлов
-карты (ОСМ) с помощью библиотеки Mapnik (текущая версия 2.0.1). Код скрипта основан
-на скрипте из стандартного пакета Маpnik-utils generate_tiles_multiprocess.py
-(взят общий механизм распараллеливания и слегка измененный класс проекции Google) и
-коде проекта psha/TileLite (взят принцип генерации карты метатайлами, который
-решает проблему падения производительности генератора при
+В этом репозитории - Python-скрипты (generate_tiles_meta_bbox_mp.py, generate_tiles_meta_lst_mp.py)
+для генерации тайлов карты (ОСМ) с помощью библиотеки Mapnik (текущая версия 2.0.1).
+Код скриптов основан на скрипте из стандартного пакета Маpnik-utils
+generate_tiles_multiprocess.py (взят общий механизм распараллеливания и слегка 
+измененный класс проекции Google) и коде проекта psha/TileLite (взят принцип генерации
+карты метатайлами, который решает проблему падения производительности генератора при
 значениях mapnik.buffer_size достаточных для устранения эффекта обрезки надписей
 расположенных по линиям и границам полигонов).
 
-Скрипт, как и прототип, предназначен для потоковой генерации тайлов карты в
+Скрипты, как и прототип, предназначены для потоковой генерации тайлов карты в
 указанных значениях масштаба и указанном полигоне, с заданным
 количеством процессов генерации (настраивается в зависимости от
 имеющихся в системе ядер процессора и свободной оперативной памяти).
@@ -25,19 +25,19 @@ Genereation tiles of map (OSM) utilities based on Python Mapnik library.
 (стандартного, или пользовательского). Сгенерированные тайлы складываются в
 тайловый кэшь, заданный директорией корня хранилища.
 
-Реализована многопроцессная генерация как по полигону, так и по файлу-списку
-полигонов, который удобен для генерации отдельных регионов со
-своими, отличными от основного поля карты условиями (например, города нужно
-генерировать с большими значениями зума-масштаба чем принято для общей
-карты).
+Реализована многопроцессная генерация как по полигону (generate_tiles_meta_bbox_mp.py),
+так и по файлу-списку полигонов (generate_tiles_meta_lst_mp.py), который удобен
+для генерации отдельных регионов со своими, отличными от основного поля карты условиями
+(например, города нужно генерировать с большими значениями зума-масштаба чем
+принято для общей карты).
 
 При генерации по списку полигонов размер метатайла оптимизируется под размер
-полигона. Размер метатайла задается в единицах сторон стандартного тайла (тоже
-параметр). Размер метатайла задается только для максимального уровня зума
+полигона. Размер метатайла задается в единицах сторон стандартного тайла (в
+параметре). Размер метатайла задается только для максимального уровня зума
 (минимального масштаба) и автоматически пересчитывается для меньших зумов так
 чтобы накрывать на всех уровнях одинаковый полигон.
 
-Кроме описанного скрипта в репозитории доступна пара скриптов применяемых для
+Кроме описанных скриптов в репозитории доступна пара скриптов применяемых для
 полного обновления тайлового хранилища вслед за обновлением базы ОСМ. Скрипт
 updt_parse_expire_list+_sp.py просматривает список устаревших тайлов, сгенерированный
 утилитой osm2pgsql при обновлении базы ОСМ. В этот список добавляются требующие
@@ -116,45 +116,42 @@ updt_parse_expire_list+_sp.py просматривает список устар
 Description
 -----------
 
-This repository - Python-script (generate_tiles_meta_mp.py) to generate the
-tile map (OSM) using the library Mapnik (current version 2.0.1). Script code
-is based on a script from a standard package Mapnik-utils
-generate_tiles_multiprocess.py (Taken by a common mechanism for
-parallelization and a slightly different class of projections of Google), and
-project code psha / TileLite (taken the principle of generating a map
-metataylami that solves the problem of performance degradation when the
-generator mapnik.buffer_size values sufficient to eliminate the effect of
-clipping labels located on the lines and boundaries of polygons).
+This repository - Python-scripts (generate_tiles_meta_bbox_mp.py, generate_tiles_meta_lst_mp.py)
+for generating tile map (SSM) with a library of Mapnik (current version 2.0.1).
+The code is based on scripts from the script, the standard package Mapnik-utils
+generate_tiles_multiprocess.py (taken by a common mechanism parallel and slightly modified 
+class projections Google) and the draft code psha/TileLite (taken by the principle
+of generationmaps metataylami that solves the problem of lost productivity when
+the generatormapnik.buffer_size values sufficient to eliminate the effect 
+of clipping labelslocated on the lines and boundaries of polygons).
 
-The script, as well as a prototype, designed to stream generating tile map in
-these values of the specified size and range, with a given
-processes of generation (adjustable depending on the
-available in the processor cores and free memory).
-Generated by using a map style
-(Standard or custom). Generated tiles add up to
-tile cache specified repository root directory.
+Scripts, as well as a prototype, designed to generate streaming tile cardthese
+values of the specified size and range, with a givenprocesses of generation 
+(adjustable depending on theavailable in the processor cores and free memory).
+Generated by using a map style(Standard or custom). Generated tiles add up totile
+cache specified repository root directory.
 
-Implemented as a Multi-Processing for the generation of a polygon, and the
-file-list polygons, which is convenient for the generation of separate regions
-with their own, distinct from the main field maps of the conditions (for
-example, the city should to generate with large zoom-zoom than is for total
-card).
+Implemented as a Multi-Processing for the generation of a polygon
+(generate_tiles_meta_bbox_mp.py),and on file-list of polygons
+(generate_tiles_meta_lst_mp.py), which is convenientto generate separate
+regions with their own, distinct from the main field maps of the terms(Eg,
+cities need to generate with large zoom-zoom thanaccepted for general maps).
 
-When generating the list of polygons metatayla size is optimized for size
-landfill. Metatayla size is specified in units of standard tile sides (also
-parameter). Size metatayla set for maximum zoom
-(Minimum scale) and will automatically be converted to smaller zooms so
-to be covered at all levels of the same polygon.
+When generating the list of polygons metatayla size is optimized for
+size landfill. Metatayla size is specified in units of standard tile sides
+(in parameter). Size metatayla set for maximum zoom(Minimum scale) and will
+automatically be converted to smaller zooms soto be covered at all levels of
+the same polygon.
 
-Also described in the script repository is available a couple of scripts used
-for the complete renovation tile store after updating the database OSM. Script
-updt_parse_expire_list + _sp.py through the list of old tiles generated by the
-utility for updating the database osm2pgsql OSM. The list is added to require
-updating tiles at all levels of zoom (utility generates a collapsed list).
-There is an opportunity to leave high levels of zoom, only the tiles included
-in the list of polygons (eg settlements).The second script updates the
-repository in accordance with the given list of tiles - in this case, the
-mechanism is not used metataylov (mapnik.buffer_size exhibited large to avoid
+Besides these scripts in a repository available to a couple of scripts used
+to complete renovation tile store after updating OSM database.
+Script updt_parse_expire_list + _sp.py through the list of old tiles, the
+generated utility osm2pgsql upgrade OSM database. The list is added to
+require Update tiles at all levels of zoom (utility generates a collapsed
+list). There is an opportunity to leave high levels of zoom, only the tiles
+included in thelist of polygons (eg settlements). The second script
+updates Store in accordance with the given list of tiles - in this case, the
+mechanism metatails not used (mapnik.buffer_size exhibited large to avoid
 clipping labels) as in this application, it is inefficient.
 
 
