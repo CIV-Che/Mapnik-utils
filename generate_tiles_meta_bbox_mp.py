@@ -40,16 +40,14 @@ NUM_THREADS = 32
 
 MIN_ZOOM = 4
 MAX_ZOOM = 14
-TILE_DIR = "/osm/wintiles/"
+TILE_DIR = "/osm/tiles/"
 MAP_FILE = "/osm/mapnik/osm.xml"
 TILE_SIZE = 256 # Number pixels on side for standart tile
 
 # Attention, for big META_SIZE (>10) and big NUM_THREADS (other on other computers)
 # you need accuracy calculate memory using (else you take increase swap use and not enough memory errors)
-META_SIZE = 32  # Number standart tiles on side metatile (for max zoom level!!!)
+META_SIZE = 64  # Number standart tiles on side metatile (for max zoom level!!!)
 BUF_SIZE = 1024 # Number pixels on side for attached around the tile buffer image (for unstrip inscriptions on bound tile or metatile), defoult is 128
-
-ONLY_NEW = bool(0)  # If ONLY_NEW = bool(1) then will not generate tile exist in tile cache
 
 #GEN_NAME = "Kaliningrad reg."
 #BBOX = (19.3, 54.3, 22.9, 55.4)
@@ -73,6 +71,11 @@ BBOX = (26.6, 41, 192, 80) # Russia, no KGD-region
 #
 #    # Europe+
 #    BBOX = (1.0,10.0, 20.6,50.0)
+
+### Uncomment next string for use empty tile mechanism
+#ONLY_NEW = bool(0)  # If ONLY_NEW = bool(1) then will not generate tile exist in tile cache
+
+SQ = 1.3 # Criteria of squared polygon
 
 
 
@@ -157,31 +160,37 @@ class RenderThread:
 
 		## Calculate full one current tile uri
                 tile_uri = os.path.join(dir_uri, '%s.%s' % ((y+dy), 'png'))
-                if not os.path.isfile(tile_uri):
-                    # View one tile from metatile and save here
-                    im.view(dx*TILE_SIZE, dy*TILE_SIZE, TILE_SIZE, TILE_SIZE).save(tile_uri, 'png256')
-                elif not ONLY_NEW:
-                    os.remove(tile_uri) # Rewrite mode
-                    # View one tile from metatile and save here
-                    im.view(dx*TILE_SIZE, dy*TILE_SIZE, TILE_SIZE, TILE_SIZE).save(tile_uri, 'png256')
-                else: continue     # For only new tiles in cache generation
+                # View one tile from metatile and save here
+                im.view(dx*TILE_SIZE, dy*TILE_SIZE, TILE_SIZE, TILE_SIZE).save(tile_uri, 'png256')
 
-                ## Check for empty tile was generated (and make hardlink on it)
-                # Handle probable exception (because of the overlaping extended by part of metatail polygons)
-                # and many processes may generate one metatile (FS handle this correct) - this fastest mechanism
-                if os.stat(tile_uri)[6] == 103:
-                    f = open(tile_uri, "r")
-                    c = f.read(44)
-                    f.close()
-                    if (ord(c[41]) == 242) and (ord(c[42]) == 239) and (ord(c[43]) == 233):
-                        os.remove(tile_uri)
-                        os.link(os.path.join(TILE_DIR,'empty.tiles/land.png'), tile_uri)
-                    elif (ord(c[41]) == 181) and (ord(c[42]) == 208) and (ord(c[43]) == 208):
-                        os.remove(tile_uri)
-                        os.link(os.path.join(TILE_DIR,'empty.tiles/water.png'), tile_uri)
-                    elif (ord(c[41]) == 174) and (ord(c[42]) == 209) and (ord(c[43]) == 160):
-                        os.remove(tile_uri)
-                        os.link(os.path.join(TILE_DIR,'empty.tiles/wood.png'), tile_uri)
+#### If you need empty-tiles mechanism explore - comment previous string and uncomment next strings
+#                if not os.path.isfile(tile_uri):
+#                    # View one tile from metatile and save here
+#                    im.view(dx*TILE_SIZE, dy*TILE_SIZE, TILE_SIZE, TILE_SIZE).save(tile_uri, 'png256')
+#                elif not ONLY_NEW:
+#                    os.remove(tile_uri) # Rewrite mode
+#                    # View one tile from metatile and save here
+#                    im.view(dx*TILE_SIZE, dy*TILE_SIZE, TILE_SIZE, TILE_SIZE).save(tile_uri, 'png256')
+#                else: continue     # For only new tiles in cache generation
+#
+#                ## Check for empty tile was generated (and make hardlink on it)
+#                # Handle probable exception (because of the overlaping extended by part of metatail polygons)
+#                # and many processes may generate one metatile (FS handle this correct) - this fastest mechanism
+#                try:
+#                    if os.stat(tile_uri)[6] == 103:
+#                        f = open(tile_uri, "r")
+#                        c = f.read(44)
+#                        f.close()
+#                        if (ord(c[41]) == 242) and (ord(c[42]) == 239) and (ord(c[43]) == 233):
+#                            os.remove(tile_uri)
+#                            os.link('/osm/tiles/empty.tiles/land.png', tile_uri)
+#                        elif (ord(c[41]) == 181) and (ord(c[42]) == 208) and (ord(c[43]) == 208):
+#                            os.remove(tile_uri)
+#                            os.link('/osm/tiles/empty.tiles/water.png', tile_uri)
+#                        elif (ord(c[41]) == 174) and (ord(c[42]) == 209) and (ord(c[43]) == 160):
+#                            os.remove(tile_uri)
+#                            os.link('/osm/tiles/empty.tiles/wood.png', tile_uri)
+#                except (OSError, IOError): pass
 
 
     def loop(self):
@@ -222,31 +231,33 @@ def render_tiles(bbox, mapfile, tile_dir, minZoom=1, maxZoom=18, name="unknown",
         os.mkdir(tile_dir)
 
     gprj = GoogleProjection(maxZoom)
+    LLtoPx = gprj.fromLLtoPixel
 
     ll0 = (bbox[0],bbox[3])
     ll1 = (bbox[2],bbox[1])
 
     # Calculate optimal size of metatile
-    px0 = gprj.fromLLtoPixel(ll0,MAX_ZOOM)
-    px1 = gprj.fromLLtoPixel(ll1,MAX_ZOOM)
+    px = [[LLtoPx(ll0,z), LLtoPx(ll1,z)] for z in xrange(0, maxZoom+1)]
+    min_max = 1 if (max(abs(px[z][0][0]-px[z][1][0]),abs(px[z][0][1]-px[z][1][1]))/min(abs(px[z][0][0]-px[z][1][0]), 
+               abs(px[z][0][1]-px[z][1][1]))) < SQ else 0
 
     # Calculate size of metatile for all zoom levels
-    meta_size = [META_SIZE//2**(MAX_ZOOM-z) if META_SIZE//2**(MAX_ZOOM-z) > 1 else 1 for z in xrange(0, MAX_ZOOM+1)]
+    if min_max:
+        meta_size = [int(min(META_SIZE, max(abs(px[z][0][0]-px[z][1][0]),abs(px[z][0][1]-px[z][1][1]))/TILE_SIZE+1) or 1) for z in xrange(0, maxZoom+1)]
+    else:
+        meta_size = [int(min(META_SIZE, min(abs(px[z][0][0]-px[z][1][0]),abs(px[z][0][1]-px[z][1][1]))/TILE_SIZE+1) or 1) for z in xrange(0, maxZoom+1)]
 
     # Pool to queue task for any zooms metatiles
     for z in xrange(minZoom, maxZoom+1):
-        px0 = gprj.fromLLtoPixel(ll0,z)
-        px1 = gprj.fromLLtoPixel(ll1,z)
-
         # check if we have directories in place
         zoom = "%s" % z
         if not os.path.isdir(tile_dir + zoom):
             os.mkdir(os.path.join(tile_dir, zoom))
-        for mx in xrange(int(px0[0]/TILE_SIZE), int(px1[0]/TILE_SIZE)+1, meta_size[z]):
+        for mx in xrange(int(px[z][0][0]/TILE_SIZE), int(px[z][1][0]/TILE_SIZE)+1, meta_size[z]):
             # Validate x co-ordinate
             if (mx < 0) or (mx >= 2**z):
                 continue
-            for my in xrange(int(px0[1]/TILE_SIZE),int(px1[1]/TILE_SIZE)+1, meta_size[z]):
+            for my in xrange(int(px[z][0][1]/TILE_SIZE),int(px[z][1][1]/TILE_SIZE)+1, meta_size[z]):
                 # Validate x co-ordinate
                 if (my < 0) or (my >= 2**z):
                     continue

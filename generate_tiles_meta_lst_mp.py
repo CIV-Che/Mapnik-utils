@@ -3,8 +3,8 @@
 # -*- coding: utf-8 -*-
 
 """
-This script for generate OSM tiles inside bounding box from list-file (for cities generation)
-you make define path to tile dir, zooms you needed and any others params.
+This script for generate OSM tiles inside bounding boxes from list-file (for cities generation).
+You make define path to tile dir, zooms you needed and any others params.
 
 This script base on standart Mapnik-utils - generate_tiles_multiprocess.py
 and TileLite psha fork (metatile mechanism).
@@ -38,24 +38,26 @@ except:
 # Default number of rendering threads to spawn, should be roughly equal to number of CPU cores available
 NUM_THREADS = 32
 
-MIN_ZOOM = 15
+MIN_ZOOM = 2
 MAX_ZOOM = 17
-TILE_DIR = "/osm/wintiles/"
+TILE_DIR = "/osm/tiles"
 MAP_FILE = "/osm/mapnik/osm.xml"
 TILE_SIZE = 256 # Number pixels on side for standart tile
 
 # Attention, for big META_SIZE (>10) and big NUM_THREADS (other on other computers)
 # you need accuracy calculate memory using (else you take increase swap use and not enough memory errors)
-META_SIZE = 32  # Number standart tiles on side metatile (for max zoom level!!!)
+META_SIZE = 64 # Number standart tiles on side metatile (for max zoom level!!!)
 BUF_SIZE = 1024 # Number pixels on side for attached around the tile buffer image (for unstrip inscriptions on bound tile or metatile), defoult is 128
 
 ## Uncomment next line for read BBOXs from list-file (one bbox on line, splitter is ",").
 ## Or, uncomment any two lines with GEN_NAME and BBOX variables (for define variables in script)
-GEN_NAME = "Russsia, Cities bboxs"
+GEN_NAME = "Russia, Cities bboxs"
 BBOX_FILE = '/osm/data/city.ru.bbox'
 
-ONLY_NEW = bool(0)  # If ONLY_NEW = bool(1) then will not generate tile exist in tile cache
+SQ = 1.3 # Criteria of squared polygon
 
+### Uncomment next string for use empty tile mechanism
+#ONLY_NEW = bool(0)  # If ONLY_NEW = bool(1) then will not generate tile exist in tile cache
 
 
 def minmax (a,b,c):
@@ -126,7 +128,7 @@ class RenderThread:
 	## Render metatile - improve performance rendering proc
         # Render image with default Agg renderer
         im = mapnik.Image(m_size*TILE_SIZE, m_size*TILE_SIZE)
-        mapnik.render(self.m, im)
+	mapnik.render(self.m, im)
         for dx in xrange(0, m_size):
             dir_uri = os.path.join(TILE_DIR, '%s' % z, '%s' % (x+dx))
             # Make tile directory
@@ -135,39 +137,42 @@ class RenderThread:
                 # handle this exception faster than multiprocess lock mechanism
                 try: os.mkdir(dir_uri)
                 except (OSError, IOError): pass
-            for dy in xrange(0, m_size):
 
+            for dy in xrange(0, m_size):
 		## Calculate full one current tile uri
                 tile_uri = os.path.join(dir_uri, '%s.%s' % ((y+dy), 'png'))
-                if not os.path.isfile(tile_uri):
-                    # View one tile from metatile and save here
-                    im.view(dx*TILE_SIZE, dy*TILE_SIZE, TILE_SIZE, TILE_SIZE).save(tile_uri, 'png256')
-                elif not ONLY_NEW:
-                    try:
-                        os.remove(tile_uri) # Rewrite mode
-                        # View one tile from metatile and save here
-                        im.view(dx*TILE_SIZE, dy*TILE_SIZE, TILE_SIZE, TILE_SIZE).save(tile_uri, 'png256')
-                    except (OSError, IOError): pass
-                else: continue     # For only new tiles in cache generation
+                # View one tile from metatile and save here
+                im.view(dx*TILE_SIZE, dy*TILE_SIZE, TILE_SIZE, TILE_SIZE).save(tile_uri, 'png256')
 
-                ## Check for empty tile was generated (and make hardlink on it)
-                # Handle probable exception (because of the overlaping extended by part of metatail polygons)
-                # and many processes may generate one metatile (FS handle this correct) - this fastest mechanism
-                try:
-                    if os.stat(tile_uri)[6] == 103:
-                        f = open(tile_uri, "r")
-                        c = f.read(44)
-                        f.close()
-                        if (ord(c[41]) == 242) and (ord(c[42]) == 239) and (ord(c[43]) == 233):
-                            os.remove(tile_uri)
-                            os.link('/osm/tiles/empty.tiles/land.png', tile_uri)
-                        elif (ord(c[41]) == 181) and (ord(c[42]) == 208) and (ord(c[43]) == 208):
-                            os.remove(tile_uri)
-                            os.link('/osm/tiles/empty.tiles/water.png', tile_uri)
-                        elif (ord(c[41]) == 174) and (ord(c[42]) == 209) and (ord(c[43]) == 160):
-                            os.remove(tile_uri)
-                            os.link('/osm/tiles/empty.tiles/wood.png', tile_uri)
-                except (OSError, IOError): pass
+#### If you need empty-tiles mechanism explore - comment previous string and uncomment next strings
+#                if not os.path.isfile(tile_uri):
+#                    # View one tile from metatile and save here
+#                    im.view(dx*TILE_SIZE, dy*TILE_SIZE, TILE_SIZE, TILE_SIZE).save(tile_uri, 'png256')
+#                elif not ONLY_NEW:
+#                    os.remove(tile_uri) # Rewrite mode
+#                    # View one tile from metatile and save here
+#                    im.view(dx*TILE_SIZE, dy*TILE_SIZE, TILE_SIZE, TILE_SIZE).save(tile_uri, 'png256')
+#                else: continue     # For only new tiles in cache generation
+#
+#                ## Check for empty tile was generated (and make hardlink on it)
+#                # Handle probable exception (because of the overlaping extended by part of metatail polygons)
+#                # and many processes may generate one metatile (FS handle this correct) - this fastest mechanism
+#                try:
+#                    if os.stat(tile_uri)[6] == 103:
+#                        f = open(tile_uri, "r")
+#                        c = f.read(44)
+#                        f.close()
+#                        if (ord(c[41]) == 242) and (ord(c[42]) == 239) and (ord(c[43]) == 233):
+#                            os.remove(tile_uri)
+#                            os.link('/osm/tiles/empty.tiles/land.png', tile_uri)
+#                        elif (ord(c[41]) == 181) and (ord(c[42]) == 208) and (ord(c[43]) == 208):
+#                            os.remove(tile_uri)
+#                            os.link('/osm/tiles/empty.tiles/water.png', tile_uri)
+#                        elif (ord(c[41]) == 174) and (ord(c[42]) == 209) and (ord(c[43]) == 160):
+#                            os.remove(tile_uri)
+#                            os.link('/osm/tiles/empty.tiles/wood.png', tile_uri)
+#                except (OSError, IOError): pass
+
 
 
     def loop(self):
@@ -196,7 +201,7 @@ class RenderThread:
 def render_tiles(bb_lst, mapfile, tile_dir, minZoom=1, maxZoom=18, name="unknown", num_threads=NUM_THREADS):
 
     # Launch rendering processes
-    queue = multiprocessing.JoinableQueue(128)
+    queue = multiprocessing.JoinableQueue(96)
     renderers = {}
     for i in xrange(num_threads):
         renderer = RenderThread(tile_dir, mapfile, queue, maxZoom)
@@ -208,13 +213,12 @@ def render_tiles(bb_lst, mapfile, tile_dir, minZoom=1, maxZoom=18, name="unknown
         os.mkdir(tile_dir)
 
     gprj = GoogleProjection(maxZoom)
+    LLtoPx = gprj.fromLLtoPixel
 
     # Making progressbar
     import progressbar
-    widgets = ['Now generate progress: ', progressbar.SimpleProgress(),
-               progressbar.Bar(marker=">",left='[',right=']'),
-               ' ', progressbar.ETA(), ' ', progressbar.FileTransferSpeed()]
-    bar = progressbar.ProgressBar(widgets = widgets, maxval = len(bb_lst)).start()
+    widgets = ['Now generate progress: ', progressbar.SimpleProgress()]
+    bar = progressbar.ProgressBar(widgets = widgets, maxval = len(bb_lst)+1).start()
     counter = 0
 
     # Iteration by bbox list
@@ -223,40 +227,36 @@ def render_tiles(bb_lst, mapfile, tile_dir, minZoom=1, maxZoom=18, name="unknown
         counter += 1
 
         ll0 = (bbox[0],bbox[3])
-        ll1 = (bbox[2],bbox[1])
+        ll1 = (bbox[1],bbox[2])
 
         # Calculate optimal size of metatile
-        px0 = gprj.fromLLtoPixel(ll0,MAX_ZOOM)
-        px1 = gprj.fromLLtoPixel(ll1,MAX_ZOOM)
-        px = [abs(px0[0]-px1[0]), abs(px0[1]-px1[1])]
-
-        ms = int(min(META_SIZE, px[0], px[1]))
+        px = [[LLtoPx(ll0,z), LLtoPx(ll1,z)] for z in xrange(0, maxZoom+1)]
+        min_max = 1 if (max(abs(px[z][0][0]-px[z][1][0]),abs(px[z][0][1]-px[z][1][1]))/min(abs(px[z][0][0]-px[z][1][0]), 
+                   abs(px[z][0][1]-px[z][1][1]))) < SQ else 0
 
         # Calculate size of metatile for all zoom levels
-        meta_size = [ms//2**(MAX_ZOOM-z) if ms//2**(MAX_ZOOM-z) > 1 else 1 for z in xrange(0, MAX_ZOOM+1)]
+        if min_max:
+            meta_size = [int(min(META_SIZE, max(abs(px[z][0][0]-px[z][1][0]),abs(px[z][0][1]-px[z][1][1]))/TILE_SIZE+1) or 1) for z in xrange(0, maxZoom+1)]
+        else:
+            meta_size = [int(min(META_SIZE, min(abs(px[z][0][0]-px[z][1][0]),abs(px[z][0][1]-px[z][1][1]))/TILE_SIZE+1) or 1) for z in xrange(0, maxZoom+1)]
 
         # Pool to queue task for any zooms metatiles
         for z in xrange(minZoom, maxZoom+1):
-            px0 = gprj.fromLLtoPixel(ll0,z)
-            px1 = gprj.fromLLtoPixel(ll1,z)
-
             # check if we have directories in place
             zoom = "%s" % z
             if not os.path.isdir(tile_dir + zoom):
                 os.mkdir(os.path.join(tile_dir, zoom))
-            for mx in xrange(int(px0[0]/TILE_SIZE), int(px1[0]/TILE_SIZE)+1, meta_size[z]):
+            for mx in xrange(int(px[z][0][0]/TILE_SIZE), int(px[z][1][0]/TILE_SIZE)+1, meta_size[z]):
                 # Validate x co-ordinate
                 if (mx < 0) or (mx >= 2**z):
                     continue
-                for my in xrange(int(px0[1]/TILE_SIZE),int(px1[1]/TILE_SIZE)+1, meta_size[z]):
+                for my in xrange(int(px[z][0][1]/TILE_SIZE),int(px[z][1][1]/TILE_SIZE)+1, meta_size[z]):
                     # Validate x co-ordinate
                     if (my < 0) or (my >= 2**z):
                         continue
                     # Submit tile to be rendered into the queue
                     t = (name, mx, my, z, meta_size[z])
                     queue.put(t)
-
-    bar.finish()
 
     # Signal render threads to exit by sending empty request to queue
     for i in xrange(num_threads):
@@ -265,6 +265,9 @@ def render_tiles(bb_lst, mapfile, tile_dir, minZoom=1, maxZoom=18, name="unknown
     queue.join()
     for i in xrange(num_threads):
         renderers[i].join()
+
+    bar.update(counter)
+    bar.finish()
 
 
 
